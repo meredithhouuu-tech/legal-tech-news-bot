@@ -1,0 +1,17 @@
+# 法律科技新闻Bot - Python依赖包
+# 使用方法：pip install -r requirements.txt
+
+# HTTP请求库
+requests>=2.31.0
+
+# 定时任务库
+schedule>=1.2.0
+
+# 环境变量管理
+python-dotenv>=1.0.0
+
+# 免费翻译库
+deep-translator>=1.11.4
+
+# RSS解析库
+feedparser>=6.0.10

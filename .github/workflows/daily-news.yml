@@ -1,0 +1,51 @@
+name: Legal Tech News Bot
+
+on:
+  # 定时任务：每天 UTC 04:00 执行（北京时间 12:00）
+  schedule:
+    - cron: '0 4 * * *'
+
+  # 允许手动触发
+  workflow_dispatch:
+
+jobs:
+  fetch-and-send-news:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout 代码
+        uses: actions/checkout@v4
+
+      - name: 设置 Python 环境
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: 安装依赖
+        run: |
+          python -m pip install --upgrade pip
+          pip install requests python-dotenv feedparser schedule deep-translator
+
+      - name: 创建 .env 文件
+        run: |
+          echo "NEWS_API_KEY=${{ secrets.NEWS_API_KEY }}" >> .env
+          echo "CLAUDE_API_KEY=${{ secrets.CLAUDE_API_KEY }}" >> .env
+          echo "FEISHU_WEBHOOK_URL=${{ secrets.FEISHU_WEBHOOK_URL }}" >> .env
+          echo "RUN_MODE=test" >> .env
+          echo "ENABLE_FALLBACK=true" >> .env
+          echo "SEARCH_KEYWORDS=${{ secrets.SEARCH_KEYWORDS }}" >> .env
+          echo "SEARCH_KEYWORDS_CN=${{ secrets.SEARCH_KEYWORDS_CN }}" >> .env
+          echo "MAX_ARTICLES=15" >> .env
+
+      - name: 运行新闻 Bot
+        run: python legal_tech_news_bot.py
+
+      - name: 上传日志文件
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bot-logs
+          path: |
+            news_bot.log
+            bot.log
+          retention-days: 7
