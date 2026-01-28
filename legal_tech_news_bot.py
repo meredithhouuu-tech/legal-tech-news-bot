@@ -490,8 +490,8 @@ class NewsFetcher:
         # 为每条新闻计算得分并保留通过基本筛选的
         scored_articles = []
         for article in unique_articles:
-            title = article.get('title', '').lower()
-            description = article.get('description', '').lower()
+            title = str(article.get('title') or '').lower()
+            description = str(article.get('description') or '').lower()
             pub_time = article.get('publishedAt', '')
 
             # 时间筛选：只保留3天内的新闻
@@ -869,7 +869,7 @@ class NewsletterGenerator:
                 logger.warning(f"⚠️ 翻译新闻 {i} 失败: {e}，使用原文")
                 lines.append(f"📌 新闻 {i}")
                 lines.append(f"标题: {title}")
-                if description and description.lower() != title.lower():
+                if description and str(description).lower() != str(title).lower():
                     lines.append(f"摘要: {description}")
                 lines.append(f"来源: {source}")
                 if publish_time:
