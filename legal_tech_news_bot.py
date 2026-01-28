@@ -434,9 +434,9 @@ class NewsFetcher:
         def calculate_relevance_score(article):
             """计算单条新闻的相关性得分"""
             score = 0
-            title = article.get('title', '').lower()
-            description = article.get('description', '').lower()
-            source = article.get('source', {}).get('name', '')
+            title = str(article.get('title') or '').lower()
+            description = str(article.get('description') or '').lower()
+            source = article.get('source', {}).get('name', '') or ''
 
             # 1. 来源权重（0-30分）
             source_weight = source_weights.get(source, 1.0)
