@@ -1083,7 +1083,7 @@ class NewsletterGenerator:
                     f"📌 {index}. {title_translated}",
                 ]
                 if description_translated:
-                    result.append(f"{description_translated}")
+                    result.append(f"摘要: {description_translated}")
                 result.append(f"📍 来源: {source}")
                 if publish_time:
                     result.append(f"🕒 发布时间: {publish_time}")
@@ -1093,7 +1093,7 @@ class NewsletterGenerator:
                 logger.warning(f"⚠️ 翻译新闻失败: {e}，使用原文")
                 result = [f"📌 {index}. {title}"]
                 if description and str(description).lower() != str(title).lower():
-                    result.append(f"{description}")
+                    result.append(f"摘要: {description}")
                 result.append(f"📍 来源: {source}")
                 if publish_time:
                     result.append(f"🕒 发布时间: {publish_time}")
