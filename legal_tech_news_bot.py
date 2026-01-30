@@ -81,6 +81,8 @@ class Config:
         self.max_articles = int(os.getenv('MAX_ARTICLES', '15'))
 
         # ========== RSS新闻源配置 ==========
+
+        # ---------- 法律科技专业源 ----------
         # 1. Google News RSS（多语言，基于关键词搜索）
         self.rss_google_news = 'https://news.google.com/rss/search?q=legal+tech+OR+legal+AI+OR+法律科技&hl=zh-CN&gl=CN&ceid=CN:zh-Hans'
 
@@ -95,6 +97,39 @@ class Config:
 
         # 5. TechLaw RSS（英文，法律科技）
         self.rss_techlaw = 'https://feeds.feedburner.com/techlaw'
+
+        # ---------- 国内科技媒体源（法律+AI） ----------
+        # 6. 36氪 - 人工智能频道
+        self.rss_36kr_ai = 'https://36kr.com/api/channel/1011/kr-column-list?per_page=20'
+
+        # 7. 虎嗅网 - 科技频道
+        self.rss_huxiu = 'https://www.huxiu.com/rss/0.xml'
+
+        # 8. 钛媒体 - 科技频道
+        self.rss_ttm = 'https://www.tmtpost.com/rss/caijing.xml'
+
+        # 9. InfoQ 中文 - AI频道
+        self.rss_infoq = 'https://www.infoq.cn/feed'
+
+        # 10. 极客公园 - 科技资讯
+        self.rss_geekpark = 'https://www.geekpark.net/rss'
+
+        # ---------- AI专业媒体源 ----------
+        # 11. 量子位 - 国内AI专业媒体
+        self.rss_qbitai = 'https://www.qbitai.com/feed'
+
+        # 12. 机器之心 - AI专业媒体
+        self.rss_jiqizhixin = 'https://www.jiqizhixin.com/rss'
+
+        # 13. 新智元 - AI资讯
+        self.rss_aiyuan = 'https://www.ai-yuan.com/feed'
+
+        # ---------- 国外AI权威源 ----------
+        # 14. TechCrunch AI
+        self.rss_techcrunch_ai = 'https://techcrunch.com/category/artificial-intelligence/feed/'
+
+        # 15. The Verge AI
+        self.rss_verge_ai = 'https://www.theverge.com/ai-artificial-intelligence/rss/index.xml'
 
         # 验证必需的配置项
         self._validate_config()
@@ -288,9 +323,95 @@ class NewsFetcher:
         )
         all_articles.extend(techlaw_articles)
 
-        logger.info(f"\n✅ RSS源共获取 {len(all_articles)} 条新闻")
+        logger.info(f"\n✅ 法律科技RSS源共获取 {len(all_articles)} 条新闻")
 
-        # ========== 第二步：从NewsAPI获取新闻（补充）==========
+        # ========== 第二步：获取国内科技媒体新闻 ==========
+        logger.info("\n" + "=" * 60)
+        logger.info("📡 开始获取国内科技媒体新闻（5个源）...")
+        logger.info("=" * 60)
+
+        # 6. 虎嗅网
+        huxiu_articles = self._fetch_from_rss(
+            self.config.rss_huxiu,
+            '虎嗅网',
+            max_items=15
+        )
+        all_articles.extend(huxiu_articles)
+
+        # 7. 钛媒体
+        ttm_articles = self._fetch_from_rss(
+            self.config.rss_ttm,
+            '钛媒体',
+            max_items=15
+        )
+        all_articles.extend(ttm_articles)
+
+        # 8. InfoQ 中文
+        infoq_articles = self._fetch_from_rss(
+            self.config.rss_infoq,
+            'InfoQ',
+            max_items=15
+        )
+        all_articles.extend(infoq_articles)
+
+        # 9. 极客公园
+        geekpark_articles = self._fetch_from_rss(
+            self.config.rss_geekpark,
+            '极客公园',
+            max_items=10
+        )
+        all_articles.extend(geekpark_articles)
+
+        logger.info(f"\n✅ 国内科技媒体共获取 {len(all_articles)} 条新闻")
+
+        # ========== 第三步：获取AI专业媒体新闻 ==========
+        logger.info("\n" + "=" * 60)
+        logger.info("🤖 开始获取AI专业媒体新闻（5个源）...")
+        logger.info("=" * 60)
+
+        # 10. 量子位
+        qbitai_articles = self._fetch_from_rss(
+            self.config.rss_qbitai,
+            '量子位',
+            max_items=20
+        )
+        all_articles.extend(qbitai_articles)
+
+        # 11. 机器之心
+        jiqizhixin_articles = self._fetch_from_rss(
+            self.config.rss_jiqizhixin,
+            '机器之心',
+            max_items=20
+        )
+        all_articles.extend(jiqizhixin_articles)
+
+        # 12. 新智元
+        aiyuan_articles = self._fetch_from_rss(
+            self.config.rss_aiyuan,
+            '新智元',
+            max_items=15
+        )
+        all_articles.extend(aiyuan_articles)
+
+        # 13. TechCrunch AI
+        techcrunch_ai_articles = self._fetch_from_rss(
+            self.config.rss_techcrunch_ai,
+            'TechCrunch AI',
+            max_items=15
+        )
+        all_articles.extend(techcrunch_ai_articles)
+
+        # 14. The Verge AI
+        verge_ai_articles = self._fetch_from_rss(
+            self.config.rss_verge_ai,
+            'The Verge AI',
+            max_items=10
+        )
+        all_articles.extend(verge_ai_articles)
+
+        logger.info(f"\n✅ AI专业媒体共获取 {len(all_articles)} 条新闻")
+
+        # ========== 第四步：从NewsAPI获取新闻（补充）==========
         logger.info("\n" + "=" * 60)
         logger.info("📰 开始获取NewsAPI新闻...")
         logger.info("=" * 60)
@@ -402,34 +523,89 @@ class NewsFetcher:
 
         logger.info(f"✅ 最终去重后剩余 {len(unique_articles)} 条新闻")
 
-        # ========== 第四步：智能评分排序（来源权重 + 相关性评分）==========
-        logger.info("🎯 开始智能评分排序...")
+        # ========== 第五步：智能评分排序（来源权重 + 相关性评分）+ 新闻分类 ==========
+        logger.info("🎯 开始智能评分排序和分类...")
 
         # 定义来源权重
         source_weights = {
-            'Artificial Lawyer': 3.0,      # 法律AI专业博客
-            'JDSupra Legal Tech': 3.0,     # 科技法律专业文章
-            'Above the Law': 2.0,          # 法律新闻
-            'Law.com': 2.0,                # 法律新闻
-            'LegalTechnology.News': 2.5,   # 法律科技专业
-            'TechLaw': 2.0,                # 法律科技
-            'Google News': 1.5,            # 新闻聚合
-            'Business Insider': 1.0,       # 通用新闻
-            'TechCrunch': 1.0,             # 科技新闻
-            'Forbes': 1.0,                 # 商业新闻
+            # 法律科技专业源
+            'Artificial Lawyer': 3.0,
+            'JDSupra Legal Tech': 3.0,
+            'Above the Law': 2.0,
+            'Law.com': 2.0,
+            'LegalTechnology.News': 2.5,
+            'TechLaw': 2.0,
+            # AI专业媒体（高权重）
+            '量子位': 3.0,
+            '机器之心': 3.0,
+            '新智元': 2.8,
+            'TechCrunch AI': 2.5,
+            'The Verge AI': 2.5,
+            # 国内科技媒体
+            '虎嗅网': 1.8,
+            '钛媒体': 1.8,
+            'InfoQ': 1.8,
+            '极客公园': 1.5,
+            '36氪': 1.5,
+            # 通用新闻
+            'Google News': 1.5,
+            'Business Insider': 1.0,
+            'TechCrunch': 1.0,
+            'Forbes': 1.0,
         }
 
-        # 核心关键词（按优先级排序）
-        primary_keywords = [
+        # ========== 法律科技关键词 ==========
+        legal_tech_keywords = [
             'legal ai', 'legal artificial intelligence', '法律ai', '法律AI', '法律人工智能'
         ]
-        secondary_keywords = [
+
+        legal_tech_secondary = [
             'legal tech', 'legal technology', 'legaltech', 'lawtech',
-            'law tech', 'law technology', '法律科技'
-        ]
-        tertiary_keywords = [
+            'law tech', 'law technology', '法律科技',
             'legal automation', 'contract AI', 'e-discovery', 'document automation'
         ]
+
+        # ========== AI重大新闻关键词（国内 + 国外）==========
+        # 国内AI公司和产品
+        ai_major_domestic = [
+            # 大模型产品
+            'kimi', '月之暗面', 'moonshot',
+            'chatglm', '智谱ai', '智谱AI', 'zhipu',
+            '文心一言', 'ernie bot', '百度ai', 'paddlepaddle',
+            '通义千问', 'qwen', '阿里ai', '通义',
+            '混元', 'hunyuan', '腾讯ai',
+            '星火', '讯飞ai', 'iflytek',
+            '豆包', '字节ai', '字节跳动ai',
+            '百川智能', 'baichuan',
+            '零一万物', '01ai', 'yi模型',
+            '深度求索', 'deepseek',
+            '面壁智能', 'cpm',
+            'minimax',
+            # 开源模型
+            '开源大模型', '开源llm', '开源模型',
+            '世界模型', 'world model',
+            # AI公司动态
+            '发布', '上线', '推出', '开源', '更新',
+            # AI技术和应用
+            'gpt-4', 'gpt4', 'claude', 'anthropic',
+            'gemini', 'llama', 'meta ai', 'grok',
+            'sora', 'midjourney', 'stable diffusion',
+            'chatgpt', 'openai',
+        ]
+
+        # AI技术关键词
+        ai_tech_keywords = [
+            '大模型', 'llm', '大型语言模型',
+            'aigc', '生成式ai', 'generative ai',
+            'transformer', 'attention机制',
+            '多模态', '视觉模型', '语音模型',
+            'agent', 'ai代理', '智能体',
+            'rag', '检索增强生成',
+            '微调', 'fine-tuning', '训练',
+        ]
+
+        # 合并所有关键词（用于筛选）
+        all_keywords = legal_tech_keywords + legal_tech_secondary + ai_major_domestic + ai_tech_keywords
 
         def calculate_relevance_score(article):
             """计算单条新闻的相关性得分"""
@@ -443,18 +619,23 @@ class NewsFetcher:
             score += source_weight * 10
 
             # 2. 关键词匹配得分
-            all_keywords = primary_keywords + secondary_keywords + tertiary_keywords
-
             # 检查标题中的关键词匹配
             for keyword in all_keywords:
                 if keyword in title:
-                    # 标题完全匹配
-                    if keyword in primary_keywords:
-                        score += 50  # 核心关键词匹配
-                    elif keyword in secondary_keywords:
-                        score += 40  # 次要关键词匹配
+                    # 法律科技核心关键词
+                    if keyword in legal_tech_keywords:
+                        score += 60  # 最高优先级
+                    # AI重大新闻关键词
+                    elif keyword in ai_major_domestic:
+                        score += 55  # 高优先级
+                    # 法律科技次要关键词
+                    elif keyword in legal_tech_secondary:
+                        score += 45
+                    # AI技术关键词
+                    elif keyword in ai_tech_keywords:
+                        score += 40
                     else:
-                        score += 20  # 其他关键词匹配
+                        score += 20
 
                     # 关键词在标题开头（前50个字符）
                     if len(title) > 0 and keyword in title[:50]:
@@ -487,7 +668,27 @@ class NewsFetcher:
 
             return score
 
-        # 为每条新闻计算得分并保留通过基本筛选的
+        def classify_article(article):
+            """将新闻分类为：法律科技新闻、AI重大新闻、或其他"""
+            title = str(article.get('title') or '').lower()
+            description = str(article.get('description') or '').lower()
+
+            # 检查是否包含法律科技关键词
+            has_legal_tech = any(kw in title or kw in description for kw in legal_tech_keywords + legal_tech_secondary)
+
+            # 检查是否包含AI重大新闻关键词
+            has_ai_major = any(kw in title or kw in description for kw in ai_major_domestic + ai_tech_keywords)
+
+            if has_legal_tech and has_ai_major:
+                return 'both'  # 两者都是
+            elif has_legal_tech:
+                return 'legal_tech'
+            elif has_ai_major:
+                return 'ai_major'
+            else:
+                return 'other'
+
+        # 为每条新闻计算得分、分类并保留通过基本筛选的
         scored_articles = []
         for article in unique_articles:
             title = str(article.get('title') or '').lower()
@@ -515,7 +716,6 @@ class NewsFetcher:
                 continue  # 跳过超过3天的新闻
 
             # 基本筛选：必须包含至少一个关键词
-            all_keywords = primary_keywords + secondary_keywords + tertiary_keywords
             contains_keyword = any(
                 kw in title or kw in description
                 for kw in all_keywords
@@ -523,13 +723,26 @@ class NewsFetcher:
 
             if contains_keyword:
                 score = calculate_relevance_score(article)
+                category = classify_article(article)
                 article['_score'] = score
+                article['_category'] = category
                 scored_articles.append(article)
 
         # 按得分排序（从高到低）
         scored_articles.sort(key=lambda x: x.get('_score', 0), reverse=True)
 
         logger.info(f"✅ 评分后剩余 {len(scored_articles)} 条精准新闻")
+
+        # 统计分类
+        legal_tech_count = sum(1 for a in scored_articles if a.get('_category') in ['legal_tech', 'both'])
+        ai_major_count = sum(1 for a in scored_articles if a.get('_category') in ['ai_major', 'both'])
+        both_count = sum(1 for a in scored_articles if a.get('_category') == 'both')
+
+        logger.info(f"📊 新闻分类统计：")
+        logger.info(f"   • 法律科技新闻：{legal_tech_count} 条")
+        logger.info(f"   • AI重大新闻：{ai_major_count} 条")
+        if both_count > 0:
+            logger.info(f"   • 两者重叠：{both_count} 条")
 
         # 显示得分最高的前3条新闻
         if scored_articles:
@@ -538,18 +751,24 @@ class NewsFetcher:
                 score = article.get('_score', 0)
                 title = article.get('title', '无标题')[:50]
                 source = article.get('source', {}).get('name', '未知')
-                logger.info(f"   {i}. [{score}分] {source}: {title}...")
+                category = article.get('_category', 'unknown')
+                logger.info(f"   {i}. [{score}分] [{category}] {source}: {title}...")
 
-        # ========== 第五步：处理无新闻的情况 ==========
+        # ========== 第六步：处理无新闻的情况 ==========
         if len(scored_articles) == 0:
-            logger.warning("⚠️ 今日暂无精准的法律科技/法律AI相关新闻")
+            logger.warning("⚠️ 今日暂无精准的法律科技/AI相关新闻")
             return [{
-                'no_news_message': '今日暂无精准的法律科技/法律AI相关新闻'
+                'no_news_message': '今日暂无精准的法律科技/AI相关新闻'
             }]
 
-        # ========== 第六步：取前10条（按综合得分排序）==========
+        # ========== 第七步：取前N条（按综合得分排序）==========
         final_articles = scored_articles[:self.config.max_articles]
         logger.info(f"🎯 最终选取 {len(final_articles)} 条新闻（按综合得分排序）")
+
+        # 保留分类信息
+        for article in final_articles:
+            if '_category' not in article:
+                article['_category'] = classify_article(article)
 
         # 显示来源分布
         source_count = {}
@@ -792,22 +1011,39 @@ class NewsletterGenerator:
     def _fallback_newsletter(self, articles: List[Dict]) -> str:
         """
         备用方案：当Claude API调用失败时，使用简单的格式化
-        现在包含免费翻译功能
+        现在包含免费翻译功能，并支持分类展示
         :param articles: 新闻列表
         :return: 简单格式化的新闻文本
         """
-        logger.info("🔄 使用备用方案生成Newsletter（包含免费翻译）")
+        logger.info("🔄 使用备用方案生成Newsletter（包含免费翻译和分类展示）")
 
         date_str = datetime.now().strftime('%Y年%m月%d日')
         lines = [
-            f"📰 法律科技日报 - {date_str}",
+            f"📰 法律科技与AI日报 - {date_str}",
             "",
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
             ""
         ]
 
-        # 最多显示配置的新闻数量（默认15条）
-        for i, article in enumerate(articles[:self.config.max_articles], 1):
+        # 按分类整理新闻
+        legal_tech_articles = []
+        ai_major_articles = []
+        other_articles = []
+
+        for article in articles[:self.config.max_articles]:
+            category = article.get('_category', 'other')
+            if category == 'legal_tech':
+                legal_tech_articles.append(article)
+            elif category == 'ai_major':
+                ai_major_articles.append(article)
+            elif category == 'both':
+                # 两者都有的，优先放到法律科技类
+                legal_tech_articles.append(article)
+            else:
+                other_articles.append(article)
+
+        # 添加一个辅助函数来格式化单条新闻
+        def format_article(article, index):
             title = article.get('title', '无标题')
             description = article.get('description', '')
             url = article.get('url', '')
@@ -818,63 +1054,74 @@ class NewsletterGenerator:
             publish_time = ''
             if published_at:
                 try:
-                    # 解析ISO格式时间并转换为本地时间
                     dt = datetime.fromisoformat(published_at.replace('Z', '+00:00'))
-                    # 转换为本地时间显示
                     publish_time = dt.strftime('%Y-%m-%d %H:%M')
                 except:
                     publish_time = published_at
 
             # 翻译标题和描述（先清理HTML标签）
             try:
-                # 先清理HTML标签
                 title_clean = self._clean_html(title)
                 description_clean = self._clean_html(description) if description else ""
 
                 # 计算标题和摘要的相似度
                 should_show_description = False
                 if description_clean:
-                    # 标准化两个字符串（去除大小写、标点、空格）
                     title_normalized = title_clean.lower()
                     desc_normalized = description_clean.lower()
-
-                    # 移除标点符号和空格
                     translator = str.maketrans('', '', string.punctuation + ' ')
                     title_normalized = title_normalized.translate(translator)
                     desc_normalized = desc_normalized.translate(translator)
-
-                    # 使用SequenceMatcher计算相似度
                     similarity = SequenceMatcher(None, title_normalized, desc_normalized).ratio()
-
-                    # 如果相似度低于95%，才显示摘要
                     if similarity < 0.95:
                         should_show_description = True
-                    else:
-                        logger.debug(f"🚫 新闻{i}: 标题摘要相似度{similarity:.1%}，不显示摘要")
 
-                # 再翻译
                 title_translated = self._translate_text(title_clean)
                 description_translated = self._translate_text(description_clean) if should_show_description else ""
 
-                lines.append(f"📌 新闻 {i}")
-                lines.append(f"标题: {title_translated}")
+                result = [
+                    f"📌 [{index}] {title_translated}",
+                ]
                 if description_translated:
-                    lines.append(f"摘要: {description_translated}")
-                lines.append(f"来源: {source}")
+                    result.append(f"    {description_translated}")
+                result.append(f"    📍 来源: {source}")
                 if publish_time:
-                    lines.append(f"发布时间: {publish_time}")
-                lines.append(f"链接: {url}")
-                lines.append("")
+                    result.append(f"    🕒 发布时间: {publish_time}")
+                result.append(f"    🔗 链接: {url}")
+                return result
             except Exception as e:
-                logger.warning(f"⚠️ 翻译新闻 {i} 失败: {e}，使用原文")
-                lines.append(f"📌 新闻 {i}")
-                lines.append(f"标题: {title}")
+                logger.warning(f"⚠️ 翻译新闻失败: {e}，使用原文")
+                result = [f"📌 [{index}] {title}"]
                 if description and str(description).lower() != str(title).lower():
-                    lines.append(f"摘要: {description}")
-                lines.append(f"来源: {source}")
+                    result.append(f"    {description}")
+                result.append(f"    📍 来源: {source}")
                 if publish_time:
-                    lines.append(f"发布时间: {publish_time}")
-                lines.append(f"链接: {url}")
+                    result.append(f"    🕒 发布时间: {publish_time}")
+                result.append(f"    🔗 链接: {url}")
+                return result
+
+        # ========== 第一部分：法律科技新闻 ==========
+        if legal_tech_articles:
+            lines.append("🔖 【法律科技新闻】")
+            lines.append("")
+            for i, article in enumerate(legal_tech_articles[:8], 1):  # 最多8条
+                lines.extend(format_article(article, i))
+                lines.append("")
+
+        # ========== 第二部分：AI重大新闻 ==========
+        if ai_major_articles:
+            lines.append("🤖 【AI重大新闻】")
+            lines.append("")
+            for i, article in enumerate(ai_major_articles[:8], 1):  # 最多8条
+                lines.extend(format_article(article, i))
+                lines.append("")
+
+        # ========== 第三部分：其他相关新闻 ==========
+        if other_articles and len(legal_tech_articles) + len(ai_major_articles) < 10:
+            lines.append("📰 【其他相关新闻】")
+            lines.append("")
+            for i, article in enumerate(other_articles[:5], 1):  # 最多5条
+                lines.extend(format_article(article, i))
                 lines.append("")
 
         lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
