@@ -1080,7 +1080,7 @@ class NewsletterGenerator:
                 description_translated = self._translate_text(description_clean) if should_show_description else ""
 
                 result = [
-                    f"📌 [{index}] {title_translated}",
+                    f"📌 {index}. {title_translated}",
                 ]
                 if description_translated:
                     result.append(f"    {description_translated}")
@@ -1091,7 +1091,7 @@ class NewsletterGenerator:
                 return result
             except Exception as e:
                 logger.warning(f"⚠️ 翻译新闻失败: {e}，使用原文")
-                result = [f"📌 [{index}] {title}"]
+                result = [f"📌 {index}. {title}"]
                 if description and str(description).lower() != str(title).lower():
                     result.append(f"    {description}")
                 result.append(f"    📍 来源: {source}")
