@@ -1080,10 +1080,10 @@ class NewsletterGenerator:
                 description_translated = self._translate_text(description_clean) if should_show_description else ""
 
                 result = [
-                    f"📌 {index}. {title_translated}",
+                    f"📌 {index}. 【标题】{title_translated}",
                 ]
                 if description_translated:
-                    result.append(f"    {description_translated}")
+                    result.append(f"    【摘要】{description_translated}")
                 result.append(f"    📍 来源: {source}")
                 if publish_time:
                     result.append(f"    🕒 发布时间: {publish_time}")
@@ -1091,9 +1091,9 @@ class NewsletterGenerator:
                 return result
             except Exception as e:
                 logger.warning(f"⚠️ 翻译新闻失败: {e}，使用原文")
-                result = [f"📌 {index}. {title}"]
+                result = [f"📌 {index}. 【标题】{title}"]
                 if description and str(description).lower() != str(title).lower():
-                    result.append(f"    {description}")
+                    result.append(f"    【摘要】{description}")
                 result.append(f"    📍 来源: {source}")
                 if publish_time:
                     result.append(f"    🕒 发布时间: {publish_time}")
@@ -1110,6 +1110,12 @@ class NewsletterGenerator:
 
         # ========== 第二部分：AI重大新闻 ==========
         if ai_major_articles:
+            # 添加模块间分隔线（如果第一部分存在）
+            if legal_tech_articles:
+                lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                lines.append("")
+
             lines.append("🤖 【AI重大新闻】")
             lines.append("")
             for i, article in enumerate(ai_major_articles[:8], 1):  # 最多8条
@@ -1118,6 +1124,12 @@ class NewsletterGenerator:
 
         # ========== 第三部分：其他相关新闻 ==========
         if other_articles and len(legal_tech_articles) + len(ai_major_articles) < 10:
+            # 添加模块间分隔线（如果前两部分存在）
+            if legal_tech_articles or ai_major_articles:
+                lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+                lines.append("")
+
             lines.append("📰 【其他相关新闻】")
             lines.append("")
             for i, article in enumerate(other_articles[:5], 1):  # 最多5条
