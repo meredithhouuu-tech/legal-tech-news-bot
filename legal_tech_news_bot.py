@@ -1033,24 +1033,64 @@ class NewsletterGenerator:
 
     def _prepare_news_summary(self, articles: List[Dict]) -> str:
         """
-        将新闻列表格式化为文本摘要
+        将新闻列表格式化为文本摘要，按分类组织
         :param articles: 新闻列表
         :return: 格式化的文本摘要
         """
-        summary_lines = []
-        for i, article in enumerate(articles, 1):
-            title = article.get('title', '无标题')
-            description = article.get('description', '无描述')
-            url = article.get('url', '')
-            source = article.get('source', {}).get('name', '未知来源')
-            published_at = article.get('publishedAt', '')
+        # 按分类整理新闻
+        legal_tech_articles = []
+        ai_major_articles = []
+        other_articles = []
 
-            summary_lines.append(
-                f"{i}. 标题: {title}\n"
-                f"   来源: {source}\n"
-                f"   描述: {description}\n"
-                f"   链接: {url}\n"
-            )
+        for article in articles:
+            category = article.get('_category', 'other')
+            if category == 'legal_tech':
+                legal_tech_articles.append(article)
+            elif category == 'ai_major':
+                ai_major_articles.append(article)
+            elif category == 'both':
+                # 两者都有的，优先放到法律科技类
+                legal_tech_articles.append(article)
+            else:
+                other_articles.append(article)
+
+        summary_lines = []
+
+        # 第一部分：法律科技新闻
+        if legal_tech_articles:
+            summary_lines.append("【法律科技新闻】")
+            for i, article in enumerate(legal_tech_articles[:10], 1):
+                title = article.get('title', '无标题')
+                description = article.get('description', '无描述')
+                url = article.get('url', '')
+                source = article.get('source', {}).get('name', '未知来源')
+                published_at = article.get('publishedAt', '')
+
+                summary_lines.append(
+                    f"{i}. 标题: {title}\n"
+                    f"   来源: {source}\n"
+                    f"   描述: {description}\n"
+                    f"   链接: {url}\n"
+                )
+
+        # 第二部分：AI重大新闻
+        if ai_major_articles:
+            if legal_tech_articles:
+                summary_lines.append("")  # 空行分隔
+            summary_lines.append("【AI重大新闻】")
+            for i, article in enumerate(ai_major_articles[:10], 1):
+                title = article.get('title', '无标题')
+                description = article.get('description', '无描述')
+                url = article.get('url', '')
+                source = article.get('source', {}).get('name', '未知来源')
+                published_at = article.get('publishedAt', '')
+
+                summary_lines.append(
+                    f"{i}. 标题: {title}\n"
+                    f"   来源: {source}\n"
+                    f"   描述: {description}\n"
+                    f"   链接: {url}\n"
+                )
 
         return '\n'.join(summary_lines)
 
@@ -1060,21 +1100,63 @@ class NewsletterGenerator:
         :param news_summary: 新闻摘要
         :return: 完整的提示词
         """
-        prompt = f"""你是一个专业的法律科技新闻编辑。请将以下英文新闻整理成一份简明扼要的中文Newsletter。
+        prompt = f"""你是一个专业的法律科技新闻编辑。请将以下新闻整理成一份简明扼要的中文Newsletter。
 
-要求：
-1. 标题：使用吸引人的标题，包含日期
-2. 格式：每条新闻包含【标题】、【简短摘要】、【来源】、【链接】
-3. 语言：全部使用中文
-4. 风格：简洁专业，适合快速阅读
-5. 最多整理8条最重要新闻
-6. 使用emoji让版面更生动
+**严格按照以下格式输出：**
 
-以下是今天的新闻：
+```
+法律科技与AI日报 - {datetime.now().strftime('%Y年%m月%d日')}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📌【法律科技新闻】
+
+➤ 新闻标题1
+摘要: xxx
+来源: xxx
+发布时间: xxx
+链接: xxx
+
+➤ 新闻标题2
+摘要: xxx
+来源: xxx
+发布时间: xxx
+链接: xxx
+
+……………………………………………………………………………………………………
+
+🎂【AI重大新闻】
+
+➤ 新闻标题1
+摘要: xxx
+来源: xxx
+发布时间: xxx
+链接: xxx
+
+➤ 新闻标题2
+摘要: xxx
+来源: xxx
+发布时间: xxx
+链接: xxx
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🤖 由法律科技新闻Bot自动推送
+```
+
+**重要格式要求：**
+1. 标题必须是：法律科技与AI日报 - 日期（不要用"科技AI快讯"或其他标题）
+2. 必须分为📌【法律科技新闻】和🎂【AI重大新闻】两个区块
+3. 每条新闻标题前必须用 ➤ 符号（不要用编号1. 2. 3.）
+4. 两个区块之间用点线分隔（……………………………………………………………………………………………………）
+5. 字段标签不要用方括号：摘要: xxx（不要用【摘要】xxx）
+6. 所有内容使用中文
+7. 每个区块最多5条新闻
+8. 如果某个区块没有新闻，就省略该区块
+
+以下是今天的新闻（已按分类整理）：
 
 {news_summary}
 
-请直接输出Newsletter内容，不需要其他解释。"""
+请严格按照上述格式输出Newsletter内容，不要修改格式结构。"""
 
         return prompt
 
