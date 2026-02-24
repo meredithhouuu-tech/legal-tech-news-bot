@@ -1014,6 +1014,9 @@ class NewsletterGenerator:
             result = response.json()
             newsletter_content = result['choices'][0]['message']['content']
 
+            # 🔍 调试日志：输出GLM API返回的原始内容（最后500字符）
+            logger.info(f"🔍 GLM API返回内容（末尾500字符）:\n{newsletter_content[-500:]}")
+
             # 强制修正落款：使用正则表达式匹配并替换最后的落款行
             import re
             # 匹配各种可能的落款格式
@@ -1025,13 +1028,22 @@ class NewsletterGenerator:
             ]
             correct_signature = '🤖 由法律科技新闻Bot自动推送（使用GLM API翻译）'
 
+            # 🔍 调试日志：检查原始内容中是否包含错误落款
+            for pattern in patterns_to_replace:
+                if re.search(pattern, newsletter_content, re.MULTILINE):
+                    logger.warning(f"⚠️ 发现错误落款，正则匹配: {pattern}")
+
             # 尝试匹配并替换
             for pattern in patterns_to_replace:
                 newsletter_content = re.sub(pattern, correct_signature, newsletter_content, flags=re.MULTILINE)
 
             # 如果没有找到任何落款，在末尾添加正确的落款
             if '由法律科技新闻Bot自动推送' not in newsletter_content:
+                logger.warning("⚠️ 未找到任何落款，将在末尾添加")
                 newsletter_content = newsletter_content.rstrip() + '\n\n' + correct_signature
+
+            # 🔍 调试日志：输出修正后的内容（最后500字符）
+            logger.info(f"🔍 修正后的内容（末尾500字符）:\n{newsletter_content[-500:]}")
 
             logger.info("✅ Newsletter生成成功（使用GLM API）")
             return newsletter_content
