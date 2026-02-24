@@ -887,7 +887,7 @@ class NewsletterGenerator:
                 'max_tokens': self.config.claude_max_tokens,  # 最大返回token数
                 'messages': [{
                     'role': 'user',
-                    'content': self._build_prompt(news_summary)
+                    'content': self._build_prompt(news_summary, 'Claude')
                 }]
             }
 
@@ -970,7 +970,7 @@ class NewsletterGenerator:
                 'max_tokens': self.config.glm_max_tokens,
                 'messages': [{
                     'role': 'user',
-                    'content': self._build_prompt(news_summary)
+                    'content': self._build_prompt(news_summary, 'GLM')
                 }]
             }
 
@@ -1094,10 +1094,11 @@ class NewsletterGenerator:
 
         return '\n'.join(summary_lines)
 
-    def _build_prompt(self, news_summary: str) -> str:
+    def _build_prompt(self, news_summary: str, api_provider: str = 'API') -> str:
         """
         构建发送给Claude的提示词
         :param news_summary: 新闻摘要
+        :param api_provider: API提供商（'GLM' 或 'Claude'）
         :return: 完整的提示词
         """
         prompt = f"""你是一个专业的法律科技新闻编辑。请将以下新闻整理成一份简明扼要的中文Newsletter。
@@ -1139,7 +1140,7 @@ class NewsletterGenerator:
 链接: xxx
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-🤖 由法律科技新闻Bot自动推送
+🤖 由法律科技新闻Bot自动推送（使用{api_provider} API翻译）
 ```
 
 **重要格式要求：**
@@ -1151,6 +1152,7 @@ class NewsletterGenerator:
 6. 所有内容使用中文
 7. 每个区块最多5条新闻
 8. 如果某个区块没有新闻，就省略该区块
+9. **最后落款必须是：🤖 由法律科技新闻Bot自动推送（使用{api_provider} API翻译）**
 
 以下是今天的新闻（已按分类整理）：
 
@@ -1341,7 +1343,7 @@ class NewsletterGenerator:
 
         lines.append("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         lines.append("")
-        lines.append("🤖 由法律科技新闻Bot自动推送（使用免费翻译）")
+        lines.append("🤖 由法律科技新闻Bot自动推送（使用备用翻译方案）")
 
         return '\n'.join(lines)
 
