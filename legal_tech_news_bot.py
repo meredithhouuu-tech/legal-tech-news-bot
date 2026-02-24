@@ -836,22 +836,28 @@ class NewsletterGenerator:
         # 根据配置选择翻译提供商
         provider = self.config.translation_provider
 
+        logger.info(f"📋 当前配置的翻译提供商: {provider}")
+        logger.info(f"📋 GLM API Key状态: {'已配置' if self.config.glm_api_key else '未配置'}")
+        logger.info(f"📋 Claude API Key状态: {'已配置' if self.config.claude_api_key else '未配置'}")
+
         # 如果指定的provider没有API Key，尝试使用其他可用的
         if provider == 'claude' and not self.config.claude_api_key:
             if self.config.glm_api_key:
                 logger.info("💡 Claude API未配置，切换到GLM API")
                 provider = 'glm'
             else:
-                logger.info("💡 Claude和GLM API都未配置，使用备用方案")
+                logger.error("❌ Claude和GLM API都未配置，使用备用方案")
                 return self._fallback_newsletter(articles)
         elif provider == 'glm' and not self.config.glm_api_key:
             if self.config.claude_api_key:
                 logger.info("💡 GLM API未配置，切换到Claude API")
                 provider = 'claude'
             else:
-                logger.info("💡 GLM和Claude API都未配置，使用备用方案")
+                logger.error("❌ GLM和Claude API都未配置，使用备用方案")
+                logger.error("❌ 请检查GitHub Secrets中是否配置了GLM_API_KEY或CLAUDE_API_KEY")
                 return self._fallback_newsletter(articles)
 
+        logger.info(f"✅ 将使用 {provider.upper()} API 生成Newsletter")
         # 使用选定的provider生成Newsletter
         if provider == 'glm':
             return self._call_glm_api(articles)
