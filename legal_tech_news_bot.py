@@ -906,6 +906,14 @@ class NewsletterGenerator:
             result = response.json()
             newsletter_content = result['content'][0]['text']
 
+            # 确保落款显示正确的API类型
+            # 检查并替换落款文本
+            if '使用备用翻译方案' in newsletter_content or '使用免费翻译' in newsletter_content:
+                newsletter_content = newsletter_content.replace('使用备用翻译方案', '使用Claude API翻译').replace('使用免费翻译', '使用Claude API翻译')
+            elif '由法律科技新闻Bot自动推送' in newsletter_content and 'API翻译' not in newsletter_content:
+                # 如果没有API类型说明，添加上
+                newsletter_content = newsletter_content.rstrip() + '（使用Claude API翻译）'
+
             logger.info("✅ Newsletter生成成功（使用Claude API）")
             return newsletter_content
 
@@ -988,6 +996,14 @@ class NewsletterGenerator:
             # 解析响应
             result = response.json()
             newsletter_content = result['choices'][0]['message']['content']
+
+            # 确保落款显示正确的API类型
+            # 检查并替换落款文本
+            if '使用备用翻译方案' in newsletter_content or '使用免费翻译' in newsletter_content:
+                newsletter_content = newsletter_content.replace('使用备用翻译方案', '使用GLM API翻译').replace('使用免费翻译', '使用GLM API翻译')
+            elif '由法律科技新闻Bot自动推送' in newsletter_content and 'API翻译' not in newsletter_content:
+                # 如果没有API类型说明，添加上
+                newsletter_content = newsletter_content.rstrip() + '（使用GLM API翻译）'
 
             logger.info("✅ Newsletter生成成功（使用GLM API）")
             return newsletter_content
