@@ -979,36 +979,44 @@ class NewsletterGenerator:
         if not self.config.enable_fallback:
             logger.info("📌 备用方案已禁用，仅使用GLM API")
 
-        try:
-            # 构建发送给GLM的新闻摘要
-            news_summary = self._prepare_news_summary(articles)
+        # 重试配置：最多重试2次，总共3次尝试
+        max_retries = 2
+        timeout = 60  # 增加到60秒超时
 
-            # 构建GLM API请求
-            headers = {
-                'Authorization': f'Bearer {self.config.glm_api_key}',
-                'Content-Type': 'application/json'
-            }
+        for attempt in range(max_retries + 1):
+            try:
+                if attempt > 0:
+                    logger.info(f"🔄 第{attempt + 1}次尝试调用GLM API...")
 
-            # GLM API请求体
-            payload = {
-                'model': self.config.glm_model,
-                'max_tokens': self.config.glm_max_tokens,
-                'messages': [{
-                    'role': 'user',
-                    'content': self._build_prompt(news_summary, 'GLM')
-                }]
-            }
+                # 构建发送给GLM的新闻摘要
+                news_summary = self._prepare_news_summary(articles)
 
-            # 发送请求到GLM API
-            response = self.session.post(
-                self.config.glm_api_url,
-                headers=headers,
-                json=payload,
-                timeout=30  # 30秒超时
-            )
+                # 构建GLM API请求
+                headers = {
+                    'Authorization': f'Bearer {self.config.glm_api_key}',
+                    'Content-Type': 'application/json'
+                }
 
-            # 检查响应状态
-            response.raise_for_status()
+                # GLM API请求体
+                payload = {
+                    'model': self.config.glm_model,
+                    'max_tokens': self.config.glm_max_tokens,
+                    'messages': [{
+                        'role': 'user',
+                        'content': self._build_prompt(news_summary, 'GLM')
+                    }]
+                }
+
+                # 发送请求到GLM API（增加超时时间）
+                response = self.session.post(
+                    self.config.glm_api_url,
+                    headers=headers,
+                    json=payload,
+                    timeout=timeout
+                )
+
+                # 检查响应状态
+                response.raise_for_status()
 
             # 解析响应
             result = response.json()
@@ -1045,47 +1053,53 @@ class NewsletterGenerator:
             # 🔍 调试日志：输出修正后的内容（最后500字符）
             logger.info(f"🔍 修正后的内容（末尾500字符）:\n{newsletter_content[-500:]}")
 
-            logger.info("✅ Newsletter生成成功（使用GLM API）")
-            return newsletter_content
+                logger.info("✅ Newsletter生成成功（使用GLM API）")
+                return newsletter_content
 
-        except requests.exceptions.HTTPError as e:
-            logger.error(f"❌ GLM API请求失败: {e}")
-            if e.response.status_code == 401:
-                logger.error("💡 提示：请检查GLM_API_KEY是否正确")
-            elif e.response.status_code == 429:
-                logger.error("💡 提示：请求过于频繁，请稍后再试")
-            elif e.response.status_code == 400:
-                logger.error("💡 提示：请求参数错误或API余额不足")
-                # 尝试解析错误信息
-                try:
-                    error_detail = e.response.json()
-                    logger.error(f"📋 错误详情：{error_detail}")
-                except:
-                    pass
+            except requests.exceptions.Timeout as e:
+                logger.warning(f"⏰ GLM API请求超时（第{attempt + 1}次尝试，超时限制{timeout}秒）")
+                if attempt < max_retries:
+                    # 继续重试
+                    continue
+                else:
+                    # 所有重试都失败
+                    logger.error(f"❌ GLM API请求超时（已重试{max_retries}次）")
+                    if self.config.enable_fallback:
+                        logger.info("🔄 自动切换到备用方案...")
+                        return self._fallback_newsletter(articles)
+                    else:
+                        return "抱歉，API请求超时，且备用方案已禁用"
 
-            # 使用备用方案
-            if self.config.enable_fallback:
-                logger.info("🔄 自动切换到备用方案...")
-                return self._fallback_newsletter(articles)
-            else:
-                logger.error("❌ 备用方案已禁用，无法生成Newsletter")
-                return "抱歉，Newsletter生成失败，且备用方案已禁用"
+            except requests.exceptions.HTTPError as e:
+                logger.error(f"❌ GLM API请求失败: {e}")
+                if e.response.status_code == 401:
+                    logger.error("💡 提示：请检查GLM_API_KEY是否正确")
+                elif e.response.status_code == 429:
+                    logger.error("💡 提示：请求过于频繁，请稍后再试")
+                elif e.response.status_code == 400:
+                    logger.error("💡 提示：请求参数错误或API余额不足")
+                    try:
+                        error_detail = e.response.json()
+                        logger.error(f"📋 错误详情：{error_detail}")
+                    except:
+                        pass
 
-        except requests.exceptions.Timeout:
-            logger.error("❌ GLM API请求超时")
-            if self.config.enable_fallback:
-                logger.info("🔄 自动切换到备用方案...")
-                return self._fallback_newsletter(articles)
-            else:
-                return "抱歉，API请求超时，且备用方案已禁用"
+                # HTTP错误不重试，直接使用备用方案
+                if self.config.enable_fallback:
+                    logger.info("🔄 自动切换到备用方案...")
+                    return self._fallback_newsletter(articles)
+                else:
+                    logger.error("❌ 备用方案已禁用，无法生成Newsletter")
+                    return "抱歉，Newsletter生成失败，且备用方案已禁用"
 
-        except Exception as e:
-            logger.error(f"❌ Newsletter生成失败: {e}")
-            if self.config.enable_fallback:
-                logger.info("🔄 自动切换到备用方案...")
-                return self._fallback_newsletter(articles)
-            else:
-                return "抱歉，Newsletter生成失败，且备用方案已禁用"
+            except Exception as e:
+                logger.error(f"❌ Newsletter生成失败: {e}")
+                # 其他错误不重试，直接使用备用方案
+                if self.config.enable_fallback:
+                    logger.info("🔄 自动切换到备用方案...")
+                    return self._fallback_newsletter(articles)
+                else:
+                    return "抱歉，Newsletter生成失败，且备用方案已禁用"
 
     def _prepare_news_summary(self, articles: List[Dict]) -> str:
         """
