@@ -1,11 +1,13 @@
 name: Legal Tech News Bot
 
 on:
-  # 定时任务：每天 UTC 04:00 执行（北京时间 12:00）
-  schedule:
-    - cron: '0 4 * * *'
+  # ⚠️ 已禁用GitHub自带定时任务（有2-3小时延迟问题）
+  # 现在使用 cron-job.org 准时触发（每天12:00北京时间）
+  # 如需恢复GitHub自带定时，取消下方注释
+  # schedule:
+  #   - cron: '0 4 * * *'  # UTC 04:00 = 北京时间 12:00
 
-  # 允许手动触发
+  # ✅ 通过 cron-job.org 或手动触发
   workflow_dispatch:
 
 jobs:
