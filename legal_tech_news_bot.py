@@ -59,6 +59,14 @@ class Config:
         # Claude Haiku价格：约$0.25/百万输入token，$1.25/百万输出token
         self.claude_max_tokens = 2000  # 每次请求最大token数
 
+        # GLM API配置（智谱AI）
+        self.glm_api_key = os.getenv('GLM_API_KEY')
+        self.glm_api_url = os.getenv('GLM_API_URL', 'https://open.bigmodel.cn/api/paas/v4/chat/completions')
+        self.glm_model = os.getenv('GLM_MODEL', 'glm-4-flash')  # 默认使用glm-4-flash（快速且便宜）
+        self.glm_max_tokens = int(os.getenv('GLM_MAX_TOKENS', '2000'))
+        # 翻译优先级：claude > glm > fallback
+        self.translation_provider = os.getenv('TRANSLATION_PROVIDER', 'claude').lower()  # claude/glm/fallback
+
         # 飞书机器人配置
         self.feishu_webhook = os.getenv('FEISHU_WEBHOOK_URL')
 
@@ -825,11 +833,37 @@ class NewsletterGenerator:
 
 🤖 由法律科技新闻Bot自动推送"""
 
-        # 如果没有Claude API密钥，直接使用备用方案
-        if not self.config.claude_api_key:
-            logger.info("💡 未配置Claude API，使用简单格式")
-            return self._fallback_newsletter(articles)
+        # 根据配置选择翻译提供商
+        provider = self.config.translation_provider
 
+        # 如果指定的provider没有API Key，尝试使用其他可用的
+        if provider == 'claude' and not self.config.claude_api_key:
+            if self.config.glm_api_key:
+                logger.info("💡 Claude API未配置，切换到GLM API")
+                provider = 'glm'
+            else:
+                logger.info("💡 Claude和GLM API都未配置，使用备用方案")
+                return self._fallback_newsletter(articles)
+        elif provider == 'glm' and not self.config.glm_api_key:
+            if self.config.claude_api_key:
+                logger.info("💡 GLM API未配置，切换到Claude API")
+                provider = 'claude'
+            else:
+                logger.info("💡 GLM和Claude API都未配置，使用备用方案")
+                return self._fallback_newsletter(articles)
+
+        # 使用选定的provider生成Newsletter
+        if provider == 'glm':
+            return self._call_glm_api(articles)
+        else:  # claude
+            return self._call_claude_api(articles)
+
+    def _call_claude_api(self, articles: List[Dict]) -> str:
+        """
+        使用Claude API生成中文Newsletter
+        :param articles: 新闻列表
+        :return: 格式化后的中文Newsletter文本
+        """
         logger.info("🤖 开始使用Claude API生成Newsletter...")
 
         # 检查是否启用备用方案
@@ -894,6 +928,95 @@ class NewsletterGenerator:
 
         except requests.exceptions.Timeout:
             logger.error("❌ Claude API请求超时")
+            if self.config.enable_fallback:
+                logger.info("🔄 自动切换到备用方案...")
+                return self._fallback_newsletter(articles)
+            else:
+                return "抱歉，API请求超时，且备用方案已禁用"
+
+        except Exception as e:
+            logger.error(f"❌ Newsletter生成失败: {e}")
+            if self.config.enable_fallback:
+                logger.info("🔄 自动切换到备用方案...")
+                return self._fallback_newsletter(articles)
+            else:
+                return "抱歉，Newsletter生成失败，且备用方案已禁用"
+
+    def _call_glm_api(self, articles: List[Dict]) -> str:
+        """
+        使用GLM API（智谱AI）生成中文Newsletter
+        :param articles: 新闻列表
+        :return: 格式化后的中文Newsletter文本
+        """
+        logger.info(f"🤖 开始使用GLM API生成Newsletter（模型：{self.config.glm_model}）...")
+
+        # 检查是否启用备用方案
+        if not self.config.enable_fallback:
+            logger.info("📌 备用方案已禁用，仅使用GLM API")
+
+        try:
+            # 构建发送给GLM的新闻摘要
+            news_summary = self._prepare_news_summary(articles)
+
+            # 构建GLM API请求
+            headers = {
+                'Authorization': f'Bearer {self.config.glm_api_key}',
+                'Content-Type': 'application/json'
+            }
+
+            # GLM API请求体
+            payload = {
+                'model': self.config.glm_model,
+                'max_tokens': self.config.glm_max_tokens,
+                'messages': [{
+                    'role': 'user',
+                    'content': self._build_prompt(news_summary)
+                }]
+            }
+
+            # 发送请求到GLM API
+            response = self.session.post(
+                self.config.glm_api_url,
+                headers=headers,
+                json=payload,
+                timeout=30  # 30秒超时
+            )
+
+            # 检查响应状态
+            response.raise_for_status()
+
+            # 解析响应
+            result = response.json()
+            newsletter_content = result['choices'][0]['message']['content']
+
+            logger.info("✅ Newsletter生成成功（使用GLM API）")
+            return newsletter_content
+
+        except requests.exceptions.HTTPError as e:
+            logger.error(f"❌ GLM API请求失败: {e}")
+            if e.response.status_code == 401:
+                logger.error("💡 提示：请检查GLM_API_KEY是否正确")
+            elif e.response.status_code == 429:
+                logger.error("💡 提示：请求过于频繁，请稍后再试")
+            elif e.response.status_code == 400:
+                logger.error("💡 提示：请求参数错误或API余额不足")
+                # 尝试解析错误信息
+                try:
+                    error_detail = e.response.json()
+                    logger.error(f"📋 错误详情：{error_detail}")
+                except:
+                    pass
+
+            # 使用备用方案
+            if self.config.enable_fallback:
+                logger.info("🔄 自动切换到备用方案...")
+                return self._fallback_newsletter(articles)
+            else:
+                logger.error("❌ 备用方案已禁用，无法生成Newsletter")
+                return "抱歉，Newsletter生成失败，且备用方案已禁用"
+
+        except requests.exceptions.Timeout:
+            logger.error("❌ GLM API请求超时")
             if self.config.enable_fallback:
                 logger.info("🔄 自动切换到备用方案...")
                 return self._fallback_newsletter(articles)
