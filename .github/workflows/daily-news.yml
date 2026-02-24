@@ -41,6 +41,23 @@ jobs:
           echo "MAX_ARTICLES=15" >> .env
           echo "TRANSLATION_PROVIDER=glm" >> .env
 
+      - name: 检查环境变量配置
+        run: |
+          echo "📋 检查环境变量配置："
+          echo "GLM_API_KEY是否为空: $([ -z \"$GLM_API_KEY\" ] && echo '是（未配置或为空）' || echo '否（已配置）')"
+          echo "CLAUDE_API_KEY是否为空: $([ -z \"$CLAUDE_API_KEY\" ] && echo '是（未配置或为空）' || echo '否（已配置）')"
+          echo ""
+          echo "📋 .env文件内容（敏感信息已隐藏）："
+          grep -E "^(GLM_API_KEY|CLAUDE_API_KEY|TRANSLATION_PROVIDER)=" .env | sed 's/=.*/=***/' || echo "无法读取.env文件"
+          echo ""
+          if [ -z "$GLM_API_KEY" ]; then
+            echo "❌ 警告: GLM_API_KEY未配置或为空！"
+            echo "   将使用备用翻译方案"
+            echo "   请在GitHub Secrets中配置GLM_API_KEY"
+          else
+            echo "✅ GLM_API_KEY已配置"
+          fi
+
       - name: 运行新闻 Bot
         run: python legal_tech_news_bot.py
 
