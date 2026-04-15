@@ -1462,13 +1462,17 @@ class FeishuNotifier:
             if result.get('code') == 0:
                 logger.info("✅ 飞书通知发送成功")
             else:
-                logger.error(f"❌ 飞书API返回错误: {result}")
+                error_message = f"❌ 飞书API返回错误: {result}"
+                logger.error(error_message)
+                raise RuntimeError(error_message)
 
         except requests.exceptions.RequestException as e:
             logger.error(f"❌ 飞书通知发送失败: {e}")
+            raise
 
         except Exception as e:
             logger.error(f"❌ 未知错误: {e}")
+            raise
 
 
 # ====================== Bot主控制器 ======================
